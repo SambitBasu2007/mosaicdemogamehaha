@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="theme-color" content="#edf1ee">
+    <link rel="icon" href="data:,">
+    <title>MØSAIC — Room 618</title>
+    <style>
+        :root {
+            --paper: #f3f5f2;
+            --ink: #17252b;
+            --muted: #64747a;
+            --line: #d8dfdc;
+            --blue: #547d90;
+            --green: #75927b;
+            --gold: #bb9658;
+            --red: #a45e54;
+            --glass: rgba(248, 250, 247, .94)
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #dce4e0;
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif
+        }
+
+        button,
+        input {
+            font: inherit
+        }
+
+        button {
+            color: inherit
+        }
+
+        #game {
+            position: fixed;
+            inset: 0
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none
+        }
+
+        #hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none
+        }
+
+        .topbar {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 16px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px
+        }
+
+        .brand,
+        .mission,
+        .mapbox,
+        .hintbar,
+        .prompt,
+        .mobileBtn {
+            background: var(--glass);
+            border: 1px solid rgba(48, 70, 76, .14);
+            box-shadow: 0 8px 28px rgba(30, 45, 46, .08);
+            backdrop-filter: blur(10px)
+        }
+
+        .brand {
+            padding: 10px 14px;
+            border-radius: 13px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .16em
+        }
+
+        .brand small {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: .04em
+        }
+
+        .mission {
+            margin-left: auto;
+            padding: 10px 14px;
+            border-radius: 13px;
+            min-width: 220px;
+            max-width: 320px
+        }
+
+        .eyebrow {
+            font-size: 10px;
+            letter-spacing: .14em;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase
+        }
+
+        .mission strong {
+            display: block;
+            font-size: 14px;
+            margin-top: 3px
+        }
+
+        .mission span {
+            font-size: 11px;
+            color: var(--muted)
+        }
+
+        .mapbox {
+            position: absolute;
+            right: 18px;
+            top: 103px;
+            border-radius: 14px;
+            padding: 9px
+        }
+
+        .mapbox canvas {
+            width: 164px;
+            height: 124px;
+            border-radius: 8px
+        }
+
+        .maplabel {
+            font-size: 9px;
+            letter-spacing: .13em;
+            color: var(--muted);
+            font-weight: 800;
+            margin: 0 0 6px 3px
+        }
+
+        .prompt {
+            position: absolute;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 999px;
+            padding: 10px 17px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            display: none
+        }
+
+        .prompt b {
+            background: #263b43;
+            color: white;
+            border-radius: 5px;
+            padding: 3px 6px;
+            margin-right: 6px;
+            font-size: 11px
+        }
+
+        .hintbar {
+            position: absolute;
+            left: 50%;
+            bottom: 74px;
+            transform: translateX(-50%);
+            border-radius: 12px;
+            padding: 9px 13px;
+            font-size: 11px;
+            color: #46585e;
+            max-width: min(540px, 88vw);
+            text-align: center
+        }
+
+        .crosshair {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 7px;
+            height: 7px;
+            border: 1px solid rgba(30, 50, 55, .55);
+            border-radius: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(31, 44, 47, .36);
+            backdrop-filter: blur(5px);
+            pointer-events: auto;
+            padding: 18px;
+            z-index: 20
+        }
+
+        .card {
+            width: min(560px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            background: var(--paper);
+            border: 1px solid #fff;
+            border-radius: 20px;
+            padding: clamp(20px, 4vw, 34px);
+            box-shadow: 0 24px 80px rgba(20, 36, 39, .25)
+        }
+
+        .card.wide {
+            width: min(680px, 96vw)
+        }
+
+        .card h1 {
+            font-size: clamp(27px, 5vw, 43px);
+            line-height: 1.02;
+            letter-spacing: -.04em;
+            margin: 9px 0 12px
+        }
+
+        .card h2 {
+            font-size: 24px;
+            letter-spacing: -.025em;
+            margin: 5px 0 8px
+        }
+
+        .card p {
+            line-height: 1.55;
+            color: #52646a;
+            margin: 8px 0
+        }
+
+        .card .lede {
+            font-size: 14px
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin: 18px 0
+        }
+
+        .chip {
+            padding: 7px 10px;
+            background: #e5ebe7;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #43575d
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 20px
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 11px;
+            background: #263c44;
+            color: white;
+            padding: 12px 16px;
+            font-weight: 800;
+            cursor: pointer;
+            min-height: 44px
+        }
+
+        .btn.secondary {
+            background: #dfe6e2;
+            color: #263c44
+        }
+
+        .btn.soft {
+            background: #e7ece8;
+            color: #33484f
+        }
+
+        .btn:disabled {
+            opacity: .45;
+            cursor: not-allowed
+        }
+
+        .btn:hover {
+            filter: brightness(1.07)
+        }
+
+        .statrow {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0
+        }
+
+        .stat {
+            flex: 1;
+            background: #e8eeea;
+            border-radius: 12px;
+            padding: 11px
+        }
+
+        .stat b {
+            display: block;
+            font-size: 18px
+        }
+
+        .stat small {
+            color: var(--muted)
+        }
+
+        .task {
+            background: #fff;
+            border: 1px solid var(--line);
+            padding: 14px;
+            border-radius: 13px;
+            margin: 14px 0
+        }
+
+        .taskTitle {
+            font-weight: 800;
+            margin-bottom: 5px
+        }
+
+        .taskText {
+            line-height: 1.5;
+            color: #465a60;
+            font-size: 14px;
+            white-space: pre-line
+        }
+
+        .answerrow {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px
+        }
+
+        .answerrow input {
+            min-width: 0;
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #c8d2ce;
+            border-radius: 10px;
+            background: #fbfcfa;
+            outline: none
+        }
+
+        .answerrow input:focus {
+            border-color: #668b8b;
+            box-shadow: 0 0 0 3px #668b8b22
+        }
+
+        .hint {
+            border-left: 3px solid var(--gold);
+            background: #f5f0e5;
+            padding: 11px 12px;
+            border-radius: 0 10px 10px 0;
+            color: #685837;
+            font-size: 12px;
+            line-height: 1.5;
+            margin-top: 11px
+        }
+
+        .feedback {
+            font-size: 12px;
+            min-height: 17px;
+            color: var(--red);
+            font-weight: 700;
+            margin-top: 9px
+        }
+
+        .padgrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px
+        }
+
+        .pad {
+            background: #e7ece9;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            min-height: 62px;
+            font-weight: 800;
+            cursor: pointer
+        }
+
+        .pad small {
+            display: block;
+            font-size: 9px;
+            color: var(--muted);
+            font-weight: 700
+        }
+
+        .pad:active {
+            transform: scale(.96)
+        }
+
+        .sequence {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin: 10px 0
+        }
+
+        .seqbit {
+            background: #e8eeea;
+            padding: 7px 9px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 12px
+        }
+
+        .doorstatus {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #e8eeea;
+            color: #465b61;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 14px
+        }
+
+        .mobile {
+            display: none;
+            pointer-events: none
+        }
+
+        .stick {
+            position: absolute;
+            left: 22px;
+            bottom: 30px;
+            width: 132px;
+            height: 132px;
+            border-radius: 50%;
+            background: #f3f5f2bb;
+            border: 1px solid #435c6540;
+            pointer-events: auto;
+            touch-action: none
+        }
+
+        .nub {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            left: 39px;
+            top: 39px;
+            border-radius: 50%;
+            background: #597784;
+            color: white;
+            box-shadow: 0 4px 12px #14252c33
+        }
+
+        .lookzone {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 52%;
+            height: 52%;
+            pointer-events: auto;
+            touch-action: none
+        }
+
+        .mobileBtn {
+            position: absolute;
+            right: 22px;
+            bottom: 38px;
+            width: 86px;
+            height: 64px;
+            border-radius: 18px;
+            font-weight: 900;
+            pointer-events: auto
+        }
+
+        .rotate {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 40;
+            background: #edf1ee;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 28px
+        }
+
+        .rotate div {
+            max-width: 290px
+        }
+
+        .rotate .phone {
+            font-size: 48px;
+            display: block;
+            transform: rotate(90deg);
+            margin-bottom: 20px
+        }
+
+        @media(pointer:coarse) {
+            .mobile {
+                display: block
+            }
+
+            .hintbar {
+                bottom: 14px;
+                left: 50%;
+                font-size: 10px
+            }
+
+            .prompt {
+                bottom: 95px
+            }
+
+            .mapbox {
+                top: auto;
+                bottom: 145px;
+                right: 12px;
+                transform: scale(.82);
+                transform-origin: bottom right
+            }
+
+            .mission {
+                min-width: 0;
+                max-width: 45vw
+            }
+
+            .brand {
+                padding: 9px 11px
+            }
+
+            .topbar {
+                left: 10px;
+                right: 10px;
+                top: 10px
+            }
+        }
+
+        @media(max-width:640px) {
+            .mission span {
+                display: none
+            }
+
+            .mission {
+                max-width: 46vw
+            }
+
+            .mapbox canvas {
+                width: 124px;
+                height: 94px
+            }
+
+            .maplabel {
+                font-size: 8px
+            }
+
+            .card {
+                border-radius: 16px
+            }
+
+            .card h1 {
+                font-size: 30px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game"></div>
+    <div id="hud">
+        <div class="topbar">
+            <div class="brand">MØSAIC <small>ROOM 618 · FIELD TEST</small></div>
+            <div class="mission">
+                <div class="eyebrow" id="missionLabel">MISSION</div><strong id="missionName">Prepare the
+                    room</strong><span id="missionSub">Follow the floor arrows to your next station.</span>
+            </div>
+        </div>
+        <div class="mapbox">
+            <div class="maplabel">ROOM 618 · MAP</div><canvas id="map" width="328" height="248"></canvas>
+        </div>
+        <div class="crosshair"></div>
+        <div class="hintbar" id="hintbar">WASD move · Mouse look · E interact · Shift run · Esc pause</div>
+        <div class="prompt" id="prompt"><b>E</b><span>Interact</span></div>
+        <div class="mobile">
+            <div class="stick" id="stick">
+                <div class="nub" id="nub"></div>
+            </div>
+            <div class="lookzone" id="lookzone"></div><button class="mobileBtn" id="touchUse">USE</button>
+        </div>
+    </div>
+    <div class="rotate" id="rotate">
+        <div><span class="phone">▱</span><b>Rotate your device</b>
+            <p>Room 618 plays best in landscape. Turn your phone sideways to continue.</p>
+        </div>
+    </div>
+    <div id="modalRoot" class="overlay">
+        <section class="card">
+            <div class="eyebrow">ROOM 618 · INTERACTIVE SYSTEMS LAB</div>
+            <h1>MØSAIC</h1>
+            <p class="lede">Follow the arrows through the room. Solve six randomized software and hardware challenges,
+                then start the launch simulation.</p>
+            <p><b>Route:</b> Waiting room → Stage 1 → Stage 2 → Bonus passage → Game exit → Stage 3.</p>
+            <p><b>Controls:</b> WASD + mouse · E interact · Shift run. On mobile, use the left pad and drag the right
+                side; rotate to landscape.</p>
+            <div class="actions"><button class="btn" id="startGame">ENTER ROOM 618</button></div>
+            <p id="bootMessage" aria-live="polite" style="font-size:12px"></p>
+        </section>
+    </div>
+    <script>
+        window.__mosaicReady = false;
+        function mosaicBootError(message) { const root = document.getElementById('modalRoot'); if (!root || window.__mosaicReady) return; root.innerHTML = '<section class="card"><div class="eyebrow">ROOM 618 · STARTUP CHECK</div><h2>The 3D room did not start</h2><p id="bootErrorText"></p><p>This game needs WebGL and access to a Three.js CDN. Check your connection, then reload the page.</p><div class="actions"><button class="btn" onclick="location.reload()">RELOAD GAME</button></div></section>'; document.getElementById('bootErrorText').textContent = String(message || 'The graphics engine did not respond.').slice(0, 220); }
+        window.addEventListener('error', e => { if (e.message) mosaicBootError(e.message) });
+        window.addEventListener('unhandledrejection', e => mosaicBootError(e.reason?.message || e.reason || 'The 3D engine could not be downloaded.'));
+        setTimeout(() => { if (!window.__mosaicReady) mosaicBootError('Loading the 3D engine timed out. Check your connection or WebGL support.'); }, 12000);
+        document.getElementById('startGame').addEventListener('click', () => { if (!window.__mosaicReady) { const m = document.getElementById('bootMessage'); if (m) m.textContent = 'Loading the 3D room…'; } });
+        // Keep the room guide visible even if a browser cannot load the 3D engine.
+        (() => { const c = document.getElementById('map'); if (!c) return; const g = c.getContext('2d'), w = c.width, h = c.height; g.fillStyle = '#f5f6f2'; g.fillRect(0, 0, w, h); g.strokeStyle = '#52636a'; g.lineWidth = 5; g.strokeRect(32, 22, 264, 204); g.lineWidth = 4; g.beginPath(); g.moveTo(164, 22); g.lineTo(164, 62); g.moveTo(164, 95); g.lineTo(164, 150); g.moveTo(164, 184); g.lineTo(164, 226); g.moveTo(32, 124); g.lineTo(68, 124); g.moveTo(104, 124); g.lineTo(164, 124); g.moveTo(103, 124); g.lineTo(103, 173); g.moveTo(103, 194); g.lineTo(103, 226); g.stroke(); g.font = 'bold 13px system-ui'; g.fillStyle = '#547366'; g.fillText('STAGE 1', 47, 86); g.fillText('STAGE 2', 45, 211); g.fillText('BONUS', 112, 211); g.fillText('STAGE 3', 218, 151); g.fillStyle = '#bd965d'; g.beginPath(); g.arc(145, 79, 7, 0, Math.PI * 2); g.fill(); })();
+    </script>
+    <script type="module">
+        async function loadThree() { let error; for (const url of ['https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js', 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r161/three.module.min.js', 'https://unpkg.com/three@0.161.0/build/three.module.js']) { try { return await import(url) } catch (e) { error = e } } throw new Error('Unable to load Three.js from the available CDNs. ' + (error?.message || '')) }
+        const THREE = await loadThree();
+        // Room geometry and UI state are defined locally in this HTML file.
+        const $ = s => document.querySelector(s), game = $('#game'), map = $('#map'), mctx = map.getContext('2d');
+        const scene = new THREE.Scene(); scene.background = new THREE.Color('#dfe7e4'); scene.fog = new THREE.Fog('#dfe7e4', 26, 58);
+        const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .08, 100); camera.position.set(2.2, 1.65, -4.85); camera.rotation.order = 'YXZ'; camera.rotation.y = Math.PI / 2;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7)); renderer.setSize(innerWidth, innerHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; game.appendChild(renderer.domElement);
+        scene.add(new THREE.HemisphereLight(0xf9fff9, 0x899b9a, 2.25)); const sun = new THREE.DirectionalLight(0xfff6df, 2.1); sun.position.set(-7, 14, -8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -23; sun.shadow.camera.right = 23; sun.shadow.camera.top = 23; sun.shadow.camera.bottom = -23; scene.add(sun);
+        const mats = { floor: new THREE.MeshStandardMaterial({ color: 0xe5e9e4, roughness: .93 }), wall: new THREE.MeshStandardMaterial({ color: 0xf3f4ef, roughness: .92 }), trim: new THREE.MeshStandardMaterial({ color: 0xc9d2cf, roughness: .8 }), dark: new THREE.MeshStandardMaterial({ color: 0x26383d, roughness: .55 }), wood: new THREE.MeshStandardMaterial({ color: 0xb7986d, roughness: .72 }), blue: new THREE.MeshStandardMaterial({ color: 0x718f9a, roughness: .55 }), green: new THREE.MeshStandardMaterial({ color: 0x809984, roughness: .58 }), gold: new THREE.MeshStandardMaterial({ color: 0xc4a36e, roughness: .55 }), white: new THREE.MeshStandardMaterial({ color: 0xf7f8f4, roughness: .4 }), screen: new THREE.MeshStandardMaterial({ color: 0xaec7bf, emissive: 0x314841, emissiveIntensity: .28, roughness: .42 }), door: new THREE.MeshStandardMaterial({ color: 0xc5d0ca, roughness: .7 }) };
+        function box(parent, x, y, z, w, h, d, mat, cast = true) { let o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); o.position.set(x, y, z); o.castShadow = cast; o.receiveShadow = true; parent.add(o); return o }
+        function cyl(parent, x, y, z, r, h, mat, segments = 16) { let o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, segments), mat); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o }
+        function labelSprite(text, color = '#263a40', bg = '#f5f6f1') { let c = document.createElement('canvas'); c.width = 512; c.height = 128; let g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, 512, 128); g.fillStyle = color; g.font = '700 34px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 256, 64); let t = new THREE.CanvasTexture(c); let s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })); s.scale.set(2.55, .64, 1); return s }
+        // Bright, calm laboratory built around the source plan's proportions and door route.
+        box(scene, 0, -.18, 0, 29, .3, 21, mats.floor); box(scene, 0, 4.4, -10.4, 29, 8.8, .45, mats.wall); box(scene, 0, 4.4, 10.4, 29, 8.8, .45, mats.wall); box(scene, -14.4, 4.4, 0, .45, 8.8, 20.8, mats.wall);
+        // Divider to waiting room, with separate entry and exit doors.
+        box(scene, 0, 4.4, -8.025, .45, 8.8, 3.95, mats.wall); box(scene, 0, 4.4, .125, .45, 8.8, 7.55, mats.wall); box(scene, 0, 4.4, 8.05, .45, 8.8, 3.9, mats.wall);
+        // Stage 1 / Stage 2 wall; bonus partition. Door slabs animate into the wall when unlocked.
+        box(scene, -12.1, 4.1, 0, 3.8, 8.2, .36, mats.wall); box(scene, -3.91, 4.1, 0, 7.82, 8.2, .36, mats.wall);
+        box(scene, -6.65, 4.1, 2.0875, .36, 8.2, 4.175, mats.wall); box(scene, -6.65, 4.1, 8.4125, .36, 8.2, 3.975, mats.wall);
+        const doors = { stage12: box(scene, -9, 1.55, 0, 2.35, 3.1, .22, mats.door), bonus: box(scene, -6.65, 1.55, 5.3, .22, 3.1, 2.25, mats.door), entry: box(scene, 0, 1.55, -4.85, .22, 3.1, 2.25, mats.door), exit: box(scene, 0, 1.55, 5.0, .22, 3.1, 2.25, mats.door), stage3: box(scene, 3.3, 1.55, 0, .22, 3.1, 2.25, mats.door) };
+        // waiting-room stage alcove to the right, divided by a door opening on its west side.
+        box(scene, 8.7, 4.2, -3.8, 10.8, 8.4, .36, mats.wall); box(scene, 8.7, 4.2, 3.9, 10.8, 8.4, .36, mats.wall); box(scene, 13.9, 4.2, .05, .36, 8.4, 7.75, mats.wall); box(scene, 3.3, 4.2, -2.45, .36, 8.4, 2.7, mats.wall); box(scene, 3.3, 4.2, 2.5, .36, 8.4, 2.8, mats.wall);
+        // room markers and illumination panels
+        function ceilingLight(x, z) { box(scene, x, 7.95, z, 2.4, .1, 1.1, mats.white, false); let l = new THREE.PointLight(0xfff5df, 46, 11, 2); l.position.set(x, 7.3, z); scene.add(l) }
+        for (let p of [[-10, -7], [-4, -7], [-10, 5], [-3, 5], [4, 0], [9, 0], [11, 6]]) ceilingLight(...p);
+        function floorMark(x, z, w, d, mat) { box(scene, x, .008, z, w, .018, d, mat, false) }
+        floorMark(-9, -5.2, 8.4, 5.8, new THREE.MeshStandardMaterial({ color: 0xe3e9e4 })); floorMark(-10, 5.1, 8.2, 8.6, new THREE.MeshStandardMaterial({ color: 0xe8e5dc })); floorMark(-3.25, 5.1, 5.9, 8.6, new THREE.MeshStandardMaterial({ color: 0xe5e9e4 })); floorMark(6.8, 0, 12.8, 7.1, new THREE.MeshStandardMaterial({ color: 0xe7ece8 }));
+        for (const [t, x, z] of [['STAGE 1  ·  SOFTWARE + HARDWARE', -9, -9], ['STAGE 2  ·  SOFTWARE + HARDWARE', -10, 8.7], ['BONUS PASSAGE', -3.3, 8.7], ['WAITING ROOM  ·  STAGE 3', 9, 3.2]]) { let s = labelSprite(t); s.position.set(x, 3.9, z); scene.add(s) }
+        // Stations: modeled desks, screens, status lamps, tactile panel.
+        const stations = []; function makeStation(id, title, type, x, z, stage) {
+            let g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); box(g, 0, .58, 0, 1.8, .22, 1.05, mats.wood); box(g, 0, .29, 0, 1.62, .35, .92, mats.dark); for (let sx of [-.68, .68]) box(g, sx, .16, .35, .11, .32, .11, mats.dark);
+            box(g, 0, 1.18, -.28, 1.16, .86, .12, mats.dark); box(g, 0, 1.19, -.205, 1.02, .68, .025, mats.screen, false); box(g, 0, .78, .34, .64, .055, .28, mats.trim); for (let i = 0; i < 3; i++)box(g, -.2 + i * .2, .82, .34, .12, .025, .12, mats.white, false);
+            for (let i = 0; i < 3; i++)cyl(g, -.58 + i * .23, .92, .2, .055, .055, [mats.green, mats.gold, mats.blue][i], 12);
+            let sign = labelSprite(type === 'software' ? 'SOFTWARE TERMINAL' : 'HARDWARE BENCH'); sign.position.set(0, 2.05, -.25); sign.scale.set(1.55, .39, 1); g.add(sign);
+            stations.push({ id, title, type, x, z, stage, group: g, screen: g.children[4] }); return g
+        }
+        // Exactly one software and one hardware puzzle at each stage.
+        makeStation('s1soft', 'Stage 1 · Software', 'software', -11.2, -7.0, 1); makeStation('s1hard', 'Stage 1 · Hardware', 'hardware', -6.6, -7.0, 1);
+        makeStation('s2soft', 'Stage 2 · Software', 'software', -11.2, 4.7, 2); makeStation('s2hard', 'Stage 2 · Hardware', 'hardware', -7.4, 7.1, 2);
+        makeStation('s3soft', 'Stage 3 · Software', 'software', 8.1, -2.1, 3); makeStation('s3hard', 'Stage 3 · Hardware', 'hardware', 11.2, 1.5, 3);
+        makeStation('launch', 'Launch simulation', 'launch', 10.4, -2.15, 4);
+        // Waiting-room arcade cabinet for the optional post-launch flight.
+        const arcade = new THREE.Group(); arcade.position.set(8.3, 0, 6.35); scene.add(arcade); box(arcade, 0, .88, 0, 1.35, 1.75, .8, mats.dark); box(arcade, 0, 1.23, -.415, .98, .68, .06, mats.screen); box(arcade, 0, .58, -.43, .8, .12, .08, mats.trim); for (let i = 0; i < 3; i++)cyl(arcade, -.22 + i * .22, .59, -.49, .055, .05, [mats.green, mats.gold, mats.blue][i], 12); let arcadeLabel = labelSprite('FLIGHT SIMULATOR'); arcadeLabel.position.set(0, 2.0, -.05); arcadeLabel.scale.set(1.65, .42, 1); arcade.add(arcadeLabel);
+        // Physical door frames and doors at open passages.
+        function frameX(x, z) { box(scene, x, 3.25, z - .97, .24, 6.5, .24, mats.trim); box(scene, x, 3.25, z + .97, .24, 6.5, .24, mats.trim); box(scene, x, 6.45, z, .24, .25, 2.18, mats.trim) }
+        function frameZ(x, z) { box(scene, x - .98, 3.25, z, .24, 6.5, .24, mats.trim); box(scene, x + .98, 3.25, z, .24, 6.5, .24, mats.trim); box(scene, x, 6.45, z, 2.2, .25, .24, mats.trim) }
+        frameZ(-9, 0); frameX(-6.65, 5.3); frameX(0, -4.85); frameX(0, 5); frameX(3.3, 0);
+        // Warm, static directional chevrons on the route and a live arrow at the player's feet.
+        const arrows = []; function floorArrow(x, z, rot, scale = 1) { let g = new THREE.Group(); g.position.set(x, .04, z); g.rotation.y = rot; scene.add(g); let m = new THREE.MeshStandardMaterial({ color: 0x789087, roughness: .7 }); for (let i = 0; i < 3; i++) { let s = new THREE.Mesh(new THREE.ConeGeometry(.24 * scale, .47 * scale, 3), m); s.rotation.x = Math.PI / 2; s.position.z = -i * .63 * scale; s.castShadow = false; g.add(s) } arrows.push(g); return g }
+        floorArrow(-9, -3.2, 0, .9); floorArrow(-9, 2.9, 0, .9); floorArrow(-6.1, 5.4, Math.PI / 2, .9); floorArrow(-1.2, 5.3, Math.PI / 2, .9); floorArrow(2.5, 5, Math.PI / 2, .9); floorArrow(6.5, -.1, Math.PI / 2, .9);
+        const liveArrow = new THREE.Group(); liveArrow.position.y = .28; scene.add(liveArrow); let arrowMat = new THREE.MeshStandardMaterial({ color: 0x557766, roughness: .4 }); let shaft = new THREE.Mesh(new THREE.CylinderGeometry(.055, .075, .58, 12), arrowMat); shaft.rotation.x = Math.PI / 2; shaft.position.z = .05; liveArrow.add(shaft); let tip = new THREE.Mesh(new THREE.ConeGeometry(.22, .42, 4), arrowMat); tip.rotation.x = Math.PI / 2; tip.position.z = .43; liveArrow.add(tip);
+        // game state, randomized puzzle data per new run
+        const state = { started: false, stage: 1, done: new Set(), complete: false, launchDone: false, bonusDone: false, bonusActive: false, modal: null, feedback: '', target: null, seed: Math.random().toString(36).slice(2, 8).toUpperCase() };
+        function rand(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a } const pick = a => a[rand(0, a.length - 1)];
+        function makeSoftware(stage) {
+            let kind = pick(['sum', 'series', 'cipher', 'checksum']); if (stage === 1 && kind === 'checksum') kind = 'sum'; if (stage === 1 && kind === 'cipher') kind = 'series'; let prompt, answer, hint;
+            if (kind === 'sum') { let n = stage === 1 ? 3 : stage === 2 ? 5 : 7, vals = Array.from({ length: n }, () => rand(stage * 3, stage * 13)); answer = vals.reduce((a, b) => a + b, 0); prompt = `The telemetry buffer contains ${n} readings:\n${vals.join('   ·   ')}\nAdd them to restore the channel. Enter the total.`; hint = 'Add every reading once. You can group pairs to keep the running total manageable.' }
+            else if (kind === 'series') { let start = rand(2, 9), step = rand(2, stage === 1 ? 4 : stage === 2 ? 7 : 11), vals = Array.from({ length: stage + 3 }, (_, i) => start + i * step); answer = start + vals.length * step; prompt = `Complete the missing telemetry value:\n${vals.join('   ·   ')}   ·   ?`; hint = `Compare neighboring values. The signal increases by the same amount each step.` }
+            else if (kind === 'cipher') { let word = pick(stage === 1 ? ['CODE', 'LAMP', 'SHIP'] : stage === 2 ? ['ORBIT', 'RELAY', 'PLANT'] : ['VECTOR', 'ENGINE', 'LAUNCH']), shift = rand(1, stage === 1 ? 3 : stage === 2 ? 6 : 9); let enc = word.replace(/[A-Z]/g, c => String.fromCharCode(65 + (c.charCodeAt(0) - 65 + shift) % 26)); answer = word; prompt = `A Caesar cipher shifted letters forward by ${shift}. Decode this station key:\n${enc}\nEnter the recovered word.`; hint = `To decode, move each letter ${shift} places backward through the alphabet. After A, wrap around to Z.` }
+            else { let vals = Array.from({ length: 4 + stage }, () => rand(2, 20)), mod = rand(7 + stage * 4, 14 + stage * 7); answer = vals.reduce((a, b) => a + b, 0) % mod; prompt = `Firmware checksum: add the readings, then keep only the remainder after division by ${mod}.\n\n${vals.join('  +  ')}\nWhat checksum should the display show?`; hint = `First add all readings. Divide that total by ${mod}; the checksum is the remainder left over.` }
+            return { kind, prompt, answer: String(answer), hint }
+        }
+        function makeHardware(stage) { let labels = ['D2', 'D4', 'D5', 'D12', 'D13', 'D18', 'D21', 'D23']; let n = stage + 2, sequence = Array.from({ length: n }, () => pick(labels)); return { sequence, labels, entered: [], prompt: `ESP32 relay calibration. Read the pulse order, then tap the GPIO pads in that exact order.\n\nFirmware target: digitalWrite(pin, HIGH) → wait → LOW.`, hint: `Match the displayed pulse order exactly. Repeated pins count again; after a wrong tap, the sequence resets.` } }
+        const puzzles = {}; for (let s = 1; s <= 3; s++) { puzzles[`s${s}soft`] = makeSoftware(s); puzzles[`s${s}hard`] = makeHardware(s) }
+        function objective() { if (!state.started) return null; for (let s = 1; s <= 3; s++) { for (let id of [`s${s}soft`, `s${s}hard`]) if (!state.done.has(id)) return stations.find(x => x.id === id) } if (!state.launchDone) return stations.find(x => x.id === 'launch'); if (state.complete && !state.bonusDone) return { id: 'bonus', title: 'Optional flight challenge', type: 'bonus', stage: 4, x: 8.3, z: 6.35 }; return null }
+        function setMission() { let obj = objective(); if (obj) { $('#missionLabel').textContent = obj.id === 'launch' ? 'LAUNCH SIMULATION' : obj.id === 'bonus' ? 'OPTIONAL BONUS' : `STAGE ${obj.stage} · IN PROGRESS`; $('#missionName').textContent = obj.title; $('#missionSub').textContent = obj.id === 'launch' ? 'Follow the arrow to the launch console.' : obj.id === 'bonus' ? 'The flight is optional; your mission is complete.' : 'Follow the floor arrows to this station.' } else if (state.complete) { $('#missionLabel').textContent = 'MISSION COMPLETE'; $('#missionName').textContent = state.bonusDone ? 'All systems secured' : 'Room 618 is safe'; $('#missionSub').textContent = state.bonusDone ? 'Thanks for playing.' : 'The optional flight is available in the waiting room.' } }
+        function stageUnlock(s) { return s === 1 || state.done.has(`s${s - 1}soft`) && state.done.has(`s${s - 1}hard`) }
+        function updateDoors() { const open = (o, on) => { o.userData.open = on }; open(doors.stage12, stageUnlock(2)); open(doors.bonus, stageUnlock(3)); open(doors.entry, true); open(doors.exit, stageUnlock(3)); open(doors.stage3, state.stage >= 3); }
+        function refresh() { setMission(); updateDoors(); drawMap() }
+        // minimap plan and current position
+        function drawMap() {
+            let c = mctx; c.clearRect(0, 0, 328, 248); c.fillStyle = '#f5f6f2'; c.fillRect(0, 0, 328, 248); let sx = 8.8, ox = 164, oz = 124; const P = (x, z) => [ox + x * sx, oz + z * sx]; c.lineWidth = 4; c.strokeStyle = '#52636a'; c.strokeRect(...[P(-14, -10)[0], P(-10, -10)[1], 28 * sx, 20 * sx]); function wall(x1, z1, x2, z2, col = '#71827f') { c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.moveTo(...P(x1, z1)); c.lineTo(...P(x2, z2)); c.stroke() } wall(0, -10, 0, -5); wall(0, -3.7, 0, 3.9); wall(0, 6.1, 0, 10); wall(-14, 0, -10.25, 0); wall(-7.75, 0, -2.85, 0); wall(-2.85, 0, 0, 0); wall(-6.65, 0, -6.65, 4.2); wall(-6.65, 6.4, -6.65, 10); wall(3.3, -3.8, 13.9, -3.8); wall(3.3, 3.9, 13.9, 3.9); wall(3.3, -3.8, 3.3, -1.2); wall(3.3, 1.1, 3.3, 3.9);
+            let labels = [[-9, -6, 'S1'], [-10, 7, 'S2'], [-3.4, 7, 'BON'], [8.5, 0, 'S3']]; c.font = 'bold 10px system-ui'; c.textAlign = 'center'; for (let [x, z, t] of labels) { let [px, pz] = P(x, z); c.fillStyle = '#718e81'; c.beginPath(); c.arc(px, pz, 9, 0, 7); c.fill(); c.fillStyle = 'white'; c.fillText(t, px, pz + 3) } let o = objective(); if (o) { let q = navPoint(o), [tx, tz] = P(q.x, q.z), [px, pz] = P(camera.position.x, camera.position.z); c.strokeStyle = '#bd965d'; c.lineWidth = 2; c.beginPath(); c.moveTo(px, pz); c.lineTo(tx, tz); c.stroke() } let [x, z] = P(camera.position.x, camera.position.z); c.fillStyle = '#263d47'; c.beginPath(); c.arc(x, z, 5, 0, 7); c.fill(); let dx = -Math.sin(camera.rotation.y), dz = -Math.cos(camera.rotation.y); c.strokeStyle = '#263d47'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, z); c.lineTo(x + dx * 12, z + dz * 12); c.stroke()
+        }
+        function openModal(html, kind) { state.modal = kind; $('#modalRoot')?.remove(); let root = document.createElement('div'); root.id = 'modalRoot'; root.className = 'overlay'; root.innerHTML = html; document.body.append(root); document.exitPointerLock?.(); }
+        function closeModal() { if (state.modal === 'intro' || state.modal === 'rotate') return; $('#modalRoot')?.remove(); state.modal = null; state.feedback = ''; if (!isTouch && state.started) renderer.domElement.requestPointerLock?.(); refresh() }
+        function intro() { openModal(`<section class="card"><div class="eyebrow">ROOM 618 · INTERACTIVE SYSTEMS LAB</div><h1>MØSAIC</h1><p class="lede">A hands-on systems mission. Follow the drawn arrows through the doors, solve six randomized station challenges, then bring the ship online.</p><div class="chips"><span class="chip">01 · Stage 1</span><span class="chip">02 · Stage 2</span><span class="chip">03 · Waiting room / Stage 3</span><span class="chip">Optional flight</span></div><p><b>Route:</b> Entry → Stage 1 → Stage 2 → Bonus passage → Game exit → Stage 3.</p><p><b>Desktop:</b> WASD to walk, mouse to look, E to use, Shift to move faster, Esc to pause.<br><b>Mobile:</b> left pad to move, drag the right side to look, USE to interact. Rotate to landscape.</p><div class="actions"><button class="btn" id="startGame">INSERT CORTEX · START</button></div></section>`, 'intro'); $('#startGame').onclick = () => { state.started = true; closeStart(); refresh(); if (!isTouch) renderer.domElement.requestPointerLock?.() }; }
+        function closeStart() { $('#modalRoot')?.remove(); state.modal = null; $('#hintbar').textContent = isTouch ? 'Left pad move · Drag to look · USE to interact' : 'WASD move · Mouse look · E interact · Shift run · Esc pause'; refresh() }
+        function stationAllowed(st) { return stageUnlock(st.stage) && state.started }
+        function interactStation(st) { if (!stationAllowed(st)) { toast(`Stage ${st.stage} is locked. Clear the earlier stage and use its door.`); return } if (state.done.has(st.id)) { toast('This terminal is already calibrated. Follow the arrow to the next objective.'); return } const p = puzzles[st.id]; if (st.type === 'software') softwareModal(st, p); else hardwareModal(st, p) }
+        function softwareModal(st, p) { let id = st.id; openModal(`<section class="card"><div class="eyebrow">STAGE ${st.stage} · SOFTWARE TERMINAL</div><h2>${st.title}</h2><p>Restore the program output. Puzzle values are generated for this run.</p><div class="task"><div class="taskTitle">${p.kind === 'cipher' ? 'DECODE THE FIRMWARE KEY' : p.kind === 'series' ? 'COMPLETE THE SIGNAL' : p.kind === 'checksum' ? 'CALCULATE THE CHECKSUM' : 'RESTORE TELEMETRY'}</div><div class="taskText">${p.prompt}</div><div class="answerrow"><input id="answer" autocomplete="off" placeholder="Your answer" aria-label="Puzzle answer"><button class="btn" id="submitAnswer">CHECK</button></div><div class="feedback" id="feedback"></div><div class="hint"><b>Hint</b> · ${p.hint}</div></div><div class="actions"><button class="btn secondary" id="leavePuzzle">CLOSE TERMINAL</button></div></section>`, 'puzzle'); const submit = () => { let val = $('#answer').value.trim().toUpperCase(); if (val === p.answer.toUpperCase()) { state.done.add(id); $('#feedback').style.color = '#527b61'; $('#feedback').textContent = 'Correct. Terminal calibrated.'; setTimeout(() => { if (state.done.has(id)) { if (state.done.has(`s${st.stage}soft`) && state.done.has(`s${st.stage}hard`)) { if (st.stage < 3) state.stage = st.stage + 1; else state.stage = 4 } closeModal(); refresh(); toast(st.stage === 3 ? 'STAGE 3 COMPLETE · FOLLOW THE ARROW TO LAUNCH' : `STAGE ${st.stage} COMPLETE · NEXT DOOR UNLOCKED`) } }, 550) } else { $('#feedback').textContent = 'Not quite. Recheck the values and use the hint below.'; $('#answer').select() } }; $('#submitAnswer').onclick = submit; $('#answer').onkeydown = e => { if (e.key === 'Enter') submit() }; $('#leavePuzzle').onclick = closeModal; setTimeout(() => $('#answer')?.focus(), 30) }
+        function hardwareModal(st, p) { let id = st.id; p.entered = []; const draw = () => { let now = $('#enteredSeq'); if (now) now.innerHTML = p.entered.map(x => `<span class="seqbit">${x}</span>`).join('') || '<span class="seqbit">Tap pads in order…</span>' }; openModal(`<section class="card"><div class="eyebrow">STAGE ${st.stage} · ESP32 HARDWARE BENCH</div><h2>${st.title}</h2><p>Route the firmware pulses through the correct GPIO sequence.</p><div class="task"><div class="taskTitle">LIVE RELAY TARGET</div><div class="taskText">${p.prompt}</div><div class="sequence">${p.sequence.map((x, i) => `<span class="seqbit">${String(i + 1).padStart(2, '0')} · ${x}</span>`).join('')}</div><div class="eyebrow">YOUR GPIO INPUT</div><div id="enteredSeq" class="sequence"></div><div class="padgrid">${p.labels.map((x, i) => `<button class="pad" data-pad="${x}">${x}<small>GPIO NODE ${i + 1}</small></button>`).join('')}</div><div class="feedback" id="feedback"></div><div class="hint"><b>Hint</b> · ${p.hint}</div></div><div class="actions"><button class="btn secondary" id="resetPads">RESET INPUT</button><button class="btn secondary" id="leavePuzzle">CLOSE BENCH</button></div></section>`, 'puzzle'); $('#enteredSeq').innerHTML = '<span class="seqbit">Tap pads in order…</span>'; document.querySelectorAll('[data-pad]').forEach(b => b.onclick = () => { let v = b.dataset.pad, ix = p.entered.length; p.entered.push(v); draw(); if (v !== p.sequence[ix]) { $('#feedback').textContent = 'Wrong pulse route. Sequence reset; try again.'; p.entered = []; setTimeout(draw, 500) } else if (p.entered.length === p.sequence.length) { state.done.add(id); $('#feedback').style.color = '#527b61'; $('#feedback').textContent = 'Signal stable. Hardware calibrated.'; setTimeout(() => { if (state.done.has(id)) { if (state.done.has(`s${st.stage}soft`) && state.done.has(`s${st.stage}hard`)) { if (st.stage < 3) state.stage = st.stage + 1; else state.stage = 4 } closeModal(); refresh(); toast(st.stage === 3 ? 'STAGE 3 COMPLETE · FOLLOW THE ARROW TO LAUNCH' : `STAGE ${st.stage} COMPLETE · NEXT DOOR UNLOCKED`) } }, 550) } }); $('#resetPads').onclick = () => { p.entered = []; $('#feedback').textContent = ''; draw() }; $('#leavePuzzle').onclick = closeModal }
+        let toastTimer; function toast(msg) { let bar = $('#hintbar'); bar.textContent = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => { bar.textContent = isTouch ? 'Left pad move · Drag to look · USE to interact' : 'WASD move · Mouse look · E interact · Shift run · Esc pause' }, 2400) }
+        // movement, pointer lock, and collision at every wall/door threshold
+        const isTouch = matchMedia('(pointer:coarse)').matches; let yaw = Math.PI / 2, pitch = 0, keys = {}, velocity = new THREE.Vector3(), moveStick = { x: 0, y: 0 }; function orientPrompt() { let portrait = matchMedia('(orientation:portrait)').matches && isTouch; $('#rotate').style.display = portrait ? 'flex' : 'none'; if (portrait && state.started) { openModal(`<section class="card"><div class="eyebrow">LANDSCAPE REQUIRED</div><h2>Turn your device sideways</h2><p>The room and touch controls are arranged for landscape play.</p></section>`, 'rotate') } else if (state.modal === 'rotate') closeStart() }
+        addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); orientPrompt() }); addEventListener('orientationchange', orientPrompt);
+        document.addEventListener('pointerlockchange', () => { if (document.pointerLockElement !== renderer.domElement && state.started && !state.modal && !isTouch) { pauseModal() } });
+        function pauseModal() { openModal(`<section class="card"><div class="eyebrow">MISSION PAUSED</div><h2>Take a moment</h2><p>Your progress is saved for this run. Resume when you’re ready.</p><div class="actions"><button class="btn" id="resume">RESUME MISSION</button><button class="btn secondary" id="controls">CONTROLS</button></div></section>`, 'pause'); $('#resume').onclick = () => { closeModal(); renderer.domElement.requestPointerLock?.() }; $('#controls').onclick = () => openModal(`<section class="card"><div class="eyebrow">FIELD GUIDE</div><h2>Controls</h2><p>WASD walk · Mouse look · E interact · Shift move faster · Esc pause.</p><div class="actions"><button class="btn" id="back">BACK</button></div></section>`, 'guide'); $('#back').onclick = pauseModal }
+        addEventListener('keydown', e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); if (e.code === 'Escape' && state.modal === 'puzzle') closeModal(); if (e.code === 'KeyE' && !state.modal) tryInteract() }); addEventListener('keyup', e => keys[e.code] = false);
+        renderer.domElement.addEventListener('click', () => { if (state.started && !isTouch && !state.modal && document.pointerLockElement !== renderer.domElement) renderer.domElement.requestPointerLock?.() }); document.addEventListener('mousemove', e => { if (document.pointerLockElement === renderer.domElement && !state.modal) { yaw -= e.movementX * .0022; pitch -= e.movementY * .0018; pitch = THREE.MathUtils.clamp(pitch, -1.35, 1.35); camera.rotation.set(pitch, yaw, 0, 'YXZ') } });
+        let lookPointer = null, lastX = 0, lastY = 0; $('#lookzone').addEventListener('pointerdown', e => { lookPointer = e.pointerId; lastX = e.clientX; lastY = e.clientY; $('#lookzone').setPointerCapture(e.pointerId) }); $('#lookzone').addEventListener('pointermove', e => { if (e.pointerId !== lookPointer) return; let dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; yaw -= dx * .006; pitch = THREE.MathUtils.clamp(pitch - dy * .005, -1.25, 1.25); camera.rotation.set(pitch, yaw, 0, 'YXZ') }); $('#lookzone').addEventListener('pointerup', () => lookPointer = null);
+        const stick = $('#stick'), nub = $('#nub'); stick.addEventListener('pointerdown', e => { stick.setPointerCapture(e.pointerId); stick.dataset.pid = e.pointerId; updateStick(e) }); stick.addEventListener('pointermove', e => { if (+stick.dataset.pid === e.pointerId) updateStick(e) }); stick.addEventListener('pointerup', e => { if (+stick.dataset.pid === e.pointerId) { moveStick = { x: 0, y: 0 }; nub.style.transform = 'translate(0,0)' } }); function updateStick(e) { let r = stick.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), lim = 38, mag = Math.hypot(dx, dy) || 1; dx *= Math.min(1, lim / mag); dy *= Math.min(1, lim / mag); moveStick = { x: dx / lim, y: dy / lim }; nub.style.transform = `translate(${dx}px,${dy}px)` } $('#touchUse').onclick = () => tryInteract();
+        function blocked(x, z) {
+            if (x < -13.2 || x > 13.35 || z < -9.25 || z > 9.25) return true;
+            // Stage partition opening remains solid until stage 1 is cleared.
+            if (Math.abs(z) < .36 && x < -.15 && x > -14 && !(x > -10.18 && x < -7.82 && stageUnlock(2))) return true;
+            if (Math.abs(x + 6.65) < .36 && z > .2 && z < 10 && !(z > 4.18 && z < 6.42 && stageUnlock(3))) return true;
+            // waiting room west wall: entry and exit use their respective openings.
+            if (Math.abs(x) < .35 && z < 0 && z > -10 && !(z > -6.05 && z < -3.65)) return true;
+            if (Math.abs(x) < .35 && z > 0 && z < 10 && !(z > 3.9 && z < 6.1 && stageUnlock(3))) return true;
+            // Stage 3 alcove door.
+            if (Math.abs(x - 3.3) < .3 && z > -3.8 && z < 3.9 && !(z > -1.2 && z < 1.1 && state.stage >= 3)) return true;
+            // stage 3 inner walls
+            if (Math.abs(z + 3.8) < .25 && x > 3.3 && x < 14) return true; if (Math.abs(z - 3.9) < .25 && x > 3.3 && x < 14) return true; if (Math.abs(x - 13.9) < .25 && z > -3.8 && z < 3.9) return true; if (Math.abs(z + .95) < .25 && x > 3.3 && x < 13.9) return true; if (Math.abs(z - 2.05) < .25 && x > 3.3 && x < 13.9) return true;
+            return false
+        }
+        function tryInteract() { if (!state.started || state.modal) return; let st = stations.map(o => ({ ...o, d: Math.hypot(camera.position.x - o.x, camera.position.z - o.z) })).sort((a, b) => a.d - b.d)[0]; if (st && st.d < 2.7) { if (st.id === 'launch') { launchModal(); return } if (st.id === 'bonus') { bonusModal(); return } interactStation(st); return } if (state.complete && Math.hypot(camera.position.x - 8.3, camera.position.z - 6.35) < 3.2) { bonusModal(); return } if (Math.abs(camera.position.z) < 2 && camera.position.x < -8 && camera.position.z < 0 && !stageUnlock(2)) { toast('Both Stage 1 terminals are required to open this door.'); return } if (state.done.has('s2soft') && state.done.has('s2hard') && camera.position.x > -6.7 && camera.position.z > 4 && camera.position.x < -.3) { toast('Follow the arrows through the game exit to Stage 3.'); return } toast('Move closer to a marked terminal or doorway.') }
+        function nearest() { let best = null, dist = 99; for (let s of stations) { if (s.id === 'launch' && !objective()?.id.includes('launch')) continue; let d = Math.hypot(camera.position.x - s.x, camera.position.z - s.z); if (d < dist) { best = s; dist = d } } if (state.complete && Math.hypot(camera.position.x - 8.3, camera.position.z - 6.35) < dist) { best = { title: 'Optional flight challenge', type: 'bonus' }; dist = Math.hypot(camera.position.x - 8.3, camera.position.z - 6.35) } let p = $('#prompt'); if (best && dist < 2.7) { p.style.display = 'block'; p.querySelector('span').textContent = best.title + (best.type === 'bonus' ? '' : ' · interact') } else p.style.display = 'none' }
+        // optional timed flight: 15 seconds, independent of completion state
+        function launchModal() { let target = rand(32, 68), choices = [target]; while (choices.length < 3) { let n = rand(25, 75); if (!choices.includes(n)) choices.push(n) } choices.sort(() => Math.random() - .5); openModal(`<section class="card"><div class="eyebrow">ROOM 618 · FINAL SYSTEM CHECK</div><h2>Launch simulation</h2><p>Set the ship on the correct orbital insertion path. Match the navigation computer’s target inclination.</p><div class="statrow"><div class="stat"><small>TARGET ORBIT</small><b>${target}°</b></div><div class="stat"><small>SHIP STATUS</small><b id="launchState">STANDBY</b></div></div><div class="task"><div class="taskTitle">SELECT INSERTION PATH</div><div class="actions">${choices.map((n, i) => `<button class="btn soft" data-orbit="${n}">PATH ${String.fromCharCode(65 + i)} · ${n}°</button>`).join('')}</div><div class="feedback" id="launchFeedback"></div><div class="hint"><b>Hint</b> · The safe orbit has the same inclination as the target shown above. Compare the degree values.</div></div><div class="actions"><button class="btn" id="armLaunch" disabled>ARM THRUSTERS</button><button class="btn secondary" id="closeLaunch">CLOSE CONSOLE</button></div></section>`, 'launch'); let armed = false; document.querySelectorAll('[data-orbit]').forEach(b => b.onclick = () => { if (+b.dataset.orbit === target) { armed = true; $('#launchFeedback').style.color = '#527b61'; $('#launchFeedback').textContent = 'Orbit aligned. You can arm the thrusters.'; $('#armLaunch').disabled = false } else { $('#launchFeedback').style.color = ''; $('#launchFeedback').textContent = 'That path will miss the target. Compare the inclinations and retry.' } }); $('#armLaunch').onclick = () => { if (!armed) return; $('#armLaunch').disabled = true; $('#launchState').textContent = 'COUNTDOWN'; let n = 3; $('#launchFeedback').textContent = 'Thrusters armed · T−3'; let iv = setInterval(() => { n--; $('#launchFeedback').textContent = n ? `Thrusters armed · T−${n}` : 'Ignition · trajectory holding'; if (n <= 0) { clearInterval(iv); state.launchDone = true; state.complete = true; closeModal(); refresh(); toast('LAUNCH SUCCESSFUL · OPTIONAL FLIGHT AVAILABLE IN WAITING ROOM') } }, 700) }; $('#closeLaunch').onclick = closeModal }
+        function bonusModal() { let time = 15, score = 0, playing = false, timer = null, pattern = []; let html = `<section class="card wide"><div class="eyebrow">OPTIONAL · WAITING ROOM MINIGAME</div><h2>Debris navigation</h2><p>Steer the survey craft through the markers. This 15-second flight is a bonus; your completed mission stays complete if you miss any.</p><div class="statrow"><div class="stat"><small>TIME</small><b id="bt">15</b></div><div class="stat"><small>MARKERS</small><b id="bs">0</b></div><div class="stat"><small>FLIGHT</small><b id="bf">READY</b></div></div><div class="task"><div class="taskText" id="flightText">Use the arrows to follow each randomly generated course cue.</div><div class="actions" id="flightKeys"><button class="btn soft" data-dir="left">← LEFT</button><button class="btn soft" data-dir="up">↑ UP</button><button class="btn soft" data-dir="down">↓ DOWN</button><button class="btn soft" data-dir="right">RIGHT →</button></div></div><div class="actions"><button class="btn" id="flightStart">START 15-SECOND FLIGHT</button><button class="btn secondary" id="flightClose">DONE</button></div></section>`; openModal(html, 'bonus'); const cue = () => { let d = pick(['left', 'up', 'down', 'right']); pattern.push(d); $('#flightText').innerHTML = `Next marker: <b>${{ left: '← LEFT', up: '↑ UP', down: '↓ DOWN', right: 'RIGHT →' }[d]}</b> · match the course cue.` }; $('#flightClose').onclick = () => { clearInterval(timer); closeModal() }; $('#flightStart').onclick = () => { if (playing) return; playing = true; time = 15; score = 0; pattern = []; $('#bt').textContent = time; $('#bs').textContent = score; $('#bf').textContent = 'IN FLIGHT'; $('#flightStart').disabled = true; cue(); timer = setInterval(() => { time--; $('#bt').textContent = time; if (time <= 0) { clearInterval(timer); playing = false; $('#bf').textContent = 'COMPLETE'; $('#flightText').textContent = `Flight ended with ${score} marker${score === 1 ? '' : 's'} collected. Your mission remains complete.`; state.bonusDone = true; refresh() } }, 1000) }; document.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { if (!playing) return; let expected = pattern[pattern.length - 1]; if (b.dataset.dir === expected) { score++; $('#bs').textContent = score; cue() } else { $('#flightText').textContent = 'Course correction missed; the ship remains safe. Follow the next cue.'; cue() } }) }
+        // route UI and intro setup
+        function nearestGate() { let x = camera.position.x, z = camera.position.z; if (z < 0 && x < 0 && !state.done.has('s1soft') && !state.done.has('s1hard')) return 'Stage 1 is active. Clear both terminals to open the south door.'; if (z > 0 && x < 0 && stageUnlock(2) && !state.done.has('s2soft')) return 'Stage 2 is active. Clear both terminals, then follow the arrow east.'; if (z > 0 && x < -6.5 && state.done.has('s2soft')) return 'The passage to the bonus area is open. Continue east to the game exit.'; return '' }
+        function navPoint(obj) { if (!obj) return null; let x = camera.position.x, z = camera.position.z; if (obj.stage === 2 && z < -.65) return { x: -9, z: 0 }; if (obj.stage === 3 && x < 0) { if (x < -6.9) return { x: -6.65, z: 5.3 }; if (z > 1.15) return { x: 0, z: 5 }; if (x < -.4) return { x: 0, z: 5 } } if (obj.stage === 3 && x >= 0 && x < 3.2) return { x: 3.35, z: 0 }; return { x: obj.x, z: obj.z } }
+        function collideMove(nx, nz) { if (!blocked(nx, camera.position.z)) camera.position.x = nx; if (!blocked(camera.position.x, nz)) camera.position.z = nz }
+        let last = performance.now(); function tick(now) {
+            requestAnimationFrame(tick); let dt = Math.min(.035, (now - last) / 1000); last = now; if (state.started && !state.modal) { let forward = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - moveStick.y; let side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + moveStick.x; let len = Math.hypot(forward, side); if (len > 1) { forward /= len; side /= len } let speed = (keys.ShiftLeft || keys.ShiftRight ? 5.6 : 3.55); let dx = (-Math.sin(yaw) * forward + Math.cos(yaw) * side) * speed * dt, dz = (-Math.cos(yaw) * forward - Math.sin(yaw) * side) * speed * dt; collideMove(camera.position.x + dx, camera.position.z + dz); nearest(); let obj = objective(); if (obj) { let point = navPoint(obj), dx = point.x - camera.position.x, dz = point.z - camera.position.z; liveArrow.visible = true; liveArrow.position.x = camera.position.x; liveArrow.position.z = camera.position.z; liveArrow.rotation.y = Math.atan2(dx, dz); liveArrow.position.y = .21 + Math.sin(now * .004) * .045 } else liveArrow.visible = false; let gate = nearestGate(); if (gate && Math.random() < .035) $('#hintbar').textContent = gate; else if (!gate && Math.random() < .02) $('#hintbar').textContent = isTouch ? 'Left pad move · Drag to look · USE to interact' : 'WASD move · Mouse look · E interact · Shift run · Esc pause'; if (Math.random() < .12) drawMap() }
+            for (let d of Object.values(doors)) { let target = d.userData.open ? 4.4 : 1.55; d.visible = true; d.position.y += (target - d.position.y) * Math.min(1, dt * 4) } renderer.render(scene, camera)
+        }
+        function initCanvasUI() { drawMap(); refresh(); intro(); orientPrompt(); window.__mosaicReady = true } initCanvasUI(); requestAnimationFrame(tick);
+    </script>
+</body>
+
+</html>
